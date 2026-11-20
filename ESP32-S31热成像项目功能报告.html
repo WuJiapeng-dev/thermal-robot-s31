@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32-S31 热成像机器人 · 源码功能解析报告</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --ink:#1f2933; --muted:#5b6b7b;
+    --line:#e2e8f0; --accent:#0f766e; --accent2:#b45309; --blue:#1d4ed8;
+    --warn:#b91c1c; --ok:#047857; --chip:#eef2f7; --code:#0f172a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 80px}
+  header.hero{background:linear-gradient(135deg,#0f766e,#115e59);color:#fff;padding:44px 22px 38px}
+  .hero-inner{max-width:1080px;margin:0 auto}
+  .hero h1{margin:0 0 8px;font-size:30px;letter-spacing:.5px}
+  .hero p{margin:4px 0;opacity:.92}
+  .hero .meta{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px}
+  .hero .meta span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+    padding:4px 12px;border-radius:999px;font-size:12.5px}
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    margin:26px 0;padding:18px 22px;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+  nav.toc h2{margin:0 0 10px;font-size:15px;color:var(--muted);font-weight:600}
+  nav.toc ol{columns:2;column-gap:36px;margin:0;padding-left:22px}
+  nav.toc li{margin:3px 0;break-inside:avoid}
+  nav.toc a{color:var(--blue);text-decoration:none}
+  nav.toc a:hover{text-decoration:underline}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:24px 26px;margin:18px 0;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+  h2.sec{font-size:21px;margin:0 0 4px;padding-bottom:12px;border-bottom:2px solid var(--accent);
+    display:flex;align-items:center;gap:10px}
+  h2.sec .num{background:var(--accent);color:#fff;font-size:14px;width:30px;height:30px;
+    border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  h3{font-size:16.5px;margin:22px 0 8px;color:var(--accent)}
+  h4{font-size:14.5px;margin:14px 0 6px;color:var(--accent2)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:24px}
+  li{margin:5px 0}
+  code{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+    background:#eef2f7;padding:1px 6px;border-radius:5px;font-size:13px;color:#9a3412}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.7px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#f0f5f4;color:#134e4a;font-weight:600}
+  tr:nth-child(even) td{background:#fafbfc}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:#fbfcfd;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card b{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .card .big{font-size:24px;font-weight:700;color:var(--accent)}
+  .kpi .big{color:var(--blue)}
+  .lead{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:16px 18px;margin:14px 0}
+  .note{background:#fffbeb;border:1px solid #fcd34d;border-left:4px solid #d97706;
+    border-radius:8px;padding:12px 16px;margin:14px 0}
+  .danger{background:#fef2f2;border:1px solid #fecaca;border-left:4px solid var(--warn);
+    border-radius:8px;padding:12px 16px;margin:14px 0}
+  .ok{background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid var(--ok);
+    border-radius:8px;padding:12px 16px;margin:14px 0}
+  .tag{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:999px;margin-right:6px;
+    background:var(--chip);color:var(--muted);border:1px solid var(--line)}
+  .tag.done{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+  .tag.part{background:#fffbeb;color:#b45309;border-color:#fcd34d}
+  .tag.off{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}
+  .codebox{position:relative;margin:12px 0}
+  .codebox .bar{background:#1e293b;color:#cbd5e1;font-size:12px;padding:6px 12px;
+    border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center}
+  .codebox button{background:#334155;color:#e2e8f0;border:0;border-radius:6px;
+    padding:3px 10px;font-size:12px;cursor:pointer}
+  .codebox button:hover{background:#475569}
+  pre{background:var(--code);color:#e2e8f0;margin:0;padding:14px 16px;border-radius:0 0 8px 8px;
+    overflow:auto;font-size:12.8px;line-height:1.6}
+  svg{max-width:100%;height:auto;display:block;margin:10px auto}
+  .cap{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-4px}
+  .chk{list-style:none;padding-left:0}
+  .chk li{padding-left:28px;position:relative}
+  .chk li:before{content:"☐";position:absolute;left:0;color:var(--accent);font-size:18px;top:-1px}
+  .src{font-size:12px;color:var(--muted)}
+  .src code{background:transparent;color:var(--accent);padding:0}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:24px 10px 0}
+  .anchor{scroll-margin-top:16px}
+  @media(max-width:780px){.g2,.g3,.g4{grid-template-columns:1fr}nav.toc ol{columns:1}}
+  @media print{
+    body{background:#fff;font-size:11.5px}
+    header.hero{background:#0f766e !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    nav.toc{display:none}
+    section{break-inside:avoid;box-shadow:none;border:1px solid #ccc;margin:10px 0;padding:14px}
+    .codebox button{display:none}
+    pre{background:#f4f4f4;color:#111;border:1px solid #ddd}
+    a{color:#1d4ed8;text-decoration:none}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <h1>ESP32-S31 热成像机器人 · 源码功能解析报告</h1>
+    <p>工程 <code style="background:rgba(255,255,255,.18);color:#fff">thermal_robot_s31</code> · 基于 ESP-IDF v6.1 · 静态源码分析（未编译、未烧录）</p>
+    <p>分析对象：<code style="background:rgba(255,255,255,.18);color:#fff">C:/Users/yyn/Desktop/热成像/源码/ESP32-S31</code>（28 个文件，12 个 C 源 + 12 个头文件 + 4 个工程文件）</p>
+    <div class="meta">
+      <span>解析日期 2026-11-19</span>
+      <span>11 个功能模块</span>
+      <span>160×120 热成像</span>
+      <span>本地闭环 + 可选云</span>
+      <span>温度未标定（NAN）</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#s1">一页速览 / 核心结论</a></li>
+    <li><a href="#s2">项目概览与技术栈</a></li>
+    <li><a href="#s3">系统架构与数据流</a></li>
+    <li><a href="#s4">启动与主循环流程</a></li>
+    <li><a href="#s5">功能模块总览（对比表）</a></li>
+    <li><a href="#s6">模块逐项详解</a></li>
+    <li><a href="#s7">热点检测算法</a></li>
+    <li><a href="#s8">标定与区域映射</a></li>
+    <li><a href="#s9">通信协议与数据格式</a></li>
+    <li><a href="#s10">存储与引脚映射</a></li>
+    <li><a href="#s11">调试命令速查</a></li>
+    <li><a href="#s12">实现状态与边界（重要口径）</a></li>
+    <li><a href="#s13">避坑清单</a></li>
+    <li><a href="#s14">可执行行动清单</a></li>
+    <li><a href="#s15">来源与说明</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="s1" class="anchor">
+  <h2 class="sec"><span class="num">1</span>一页速览 / 核心结论</h2>
+  <div class="lead">
+    <b>一句话概括：</b>这是一个跑在 ESP32-S31 上的<b>热成像热点巡检机器人</b>主控程序——通过 USB Host 读取 MAG160Core 热成像模组的 160×120 原始帧，用相对阈值算法在画面里找出发热区域，按坐标查 SD 卡上的区域表得到中文名，然后同时走<b>三路输出</b>：串口发 JSON 给 STM32、SYN6288 语音播报、SD 卡存快照；WiFi 云端为默认关闭的可选项。
+  </div>
+  <div class="grid g4">
+    <div class="card kpi"><b>热成像分辨率</b><div class="big">160×120</div><span class="src">16-bit raw · 38.4 KB/帧</span></div>
+    <div class="card kpi"><b>扫描节奏</b><div class="big">30 帧 / 5 s</div><span class="src">每轮 30 帧，间隔 5 秒</span></div>
+    <div class="card kpi"><b>热点结果上限</b><div class="big">8 个</div><span class="src">相对阈值 + 跨帧确认</span></div>
+    <div class="card kpi"><b>STM32 链路波特率</b><div class="big">921600</div><span class="src">UART2 · JSON 行协议</span></div>
+  </div>
+  <h3>核心结论（先看这 6 条）</h3>
+  <ol>
+    <li><b>功能主线已打通为本地闭环。</b>采集 → 热点分析 → 区域查表 → 串口/语音/存储输出，全链路在 <code>main.c:run_scan()</code> 中有明确调用，可独立运行，不依赖网络。</li>
+    <li><b>温度值目前不可用。</b><code>raw_to_celsius()</code> 明确返回 <code>NAN</code>（<code>app_thermal.c:703-712</code>）；代码注释反复强调"不得把 raw count 当摄氏度上报"。所谓"温度"在 JSON 里是哨兵值 <code>-273.0</code>，语音则播报"温度未标定"。</li>
+    <li><b>热点判据是相对量，不是绝对温度。</b>阈值 <code>HOTSPOT_RAW_DELTA=1500</code> 是"相对全图中位数的原始计数差"，注释注明为估算值，等待黑体/现场标定，<b>不是 8℃ 的换算</b>（<code>app_config.h:8-10</code>）。</li>
+    <li><b>NUC（非均匀性校正）明确不在范围内。</b><code>main.c:157</code> 注释："NUC computation is deliberately out of scope"，只做了标定的下载与存储。</li>
+    <li><b>多路外设处于"已接线/已初始化但未参与主业务"状态。</b>OV2640 仅做 SCCB 探测（plan B，无图像采集）；板载 ES8311 音频仅初始化与自检；RGB LED / BOOT 按键保留未驱动。</li>
+    <li><b>云端是 opt-in。</b><code>APP_WIFI_ENABLE=0</code> 且 SSID/URL 为空，空凭据绝不触发联网（<code>app_config.h:102-107</code>、<code>app_cloud.c</code>）。</li>
+  </ol>
+</section>
+
+<!-- 2 -->
+<section id="s2" class="anchor">
+  <h2 class="sec"><span class="num">2</span>项目概览与技术栈</h2>
+  <table>
+    <tr><th style="width:22%">项目属性</th><th>取值 / 说明</th><th style="width:26%">来源</th></tr>
+    <tr><td>工程名</td><td><code>thermal_robot_s31</code></td><td><code>CMakeLists.txt:5</code></td></tr>
+    <tr><td>框架 / IDF</td><td>ESP-IDF，依赖 <code>idf &gt;= 6.1</code>；preview 目标芯片 esp32s31（沿用用户现有环境口径）</td><td><code>idf_component.yml:2</code></td></tr>
+    <tr><td>组件依赖</td><td><code>espressif/usb==1.6.0</code>、<code>espressif/esp_codec_dev==1.6.2</code>；系统组件含 console、fatfs、esp_wifi、esp_http_client、sdmmc、ledc、i2s 等</td><td><code>idf_component.yml</code>、<code>main/CMakeLists.txt</code></td></tr>
+    <tr><td>编译告警</td><td><code>-Wall -Wextra -Werror</code>（告警即错误）</td><td><code>main/CMakeLists.txt:36</code></td></tr>
+    <tr><td>Flash</td><td>16 MB，QIO，80 MHz；CPU 320 MHz</td><td><code>sdkconfig.defaults:1-5</code></td></tr>
+    <tr><td>PSRAM</td><td>OCT 模式，200 MHz，<code>SPIRAM_USE_MALLOC</code>；帧/标定/算法工作区均在 PSRAM</td><td><code>sdkconfig.defaults:10-16</code></td></tr>
+    <tr><td>分区表</td><td>nvs 0x9000(24K)、phy_init 0xf000(4K)、factory app 0x10000(8 M)</td><td><code>partitions.csv</code></td></tr>
+    <tr><td>系统</td><td>FreeRTOS 1000 Hz，console 走 UART0</td><td><code>sdkconfig.defaults:18-21</code></td></tr>
+  </table>
+  <div class="note"><b>口径：</b>本节为源码中工程配置的直接摘录。IDF 目标 <code>esp32s31</code> 属 preview 目标，实际编译需带 <code>--preview</code> 且须在已激活 IDF 的环境内运行——这是用户既有环境约定，本报告不作重复假设，仅提示。</div>
+</section>
+
+<!-- 3 -->
+<section id="s3" class="anchor">
+  <h2 class="sec"><span class="num">3</span>系统架构与数据流</h2>
+  <p>下图根据源码调用关系<b>整理绘制</b>（非逐字稿）：实线为主业务数据流，虚线为辅助/可选路径。</p>
+  <svg viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+      </marker>
+    </defs>
+    <!-- groups -->
+    <rect x="20" y="70" width="180" height="250" rx="12" fill="#eef2ff" stroke="#c7d2fe"/>
+    <text x="110" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#3730a3">输入 · USB 热成像</text>
+    <rect x="35" y="105" width="150" height="60" rx="8" fill="#fff" stroke="#a5b4fc"/>
+    <text x="110" y="128" text-anchor="middle" font-size="12" fill="#1f2933">MAG160Core</text>
+    <text x="110" y="146" text-anchor="middle" font-size="10" fill="#64748b">VID 0x833C</text>
+    <rect x="35" y="185" width="150" height="60" rx="8" fill="#fff" stroke="#a5b4fc"/>
+    <text x="110" y="208" text-anchor="middle" font-size="12" fill="#1f2933">USB Host 驱动</text>
+    <text x="110" y="226" text-anchor="middle" font-size="10" fill="#64748b">app_thermal</text>
+    <rect x="35" y="265" width="150" height="44" rx="8" fill="#fff" stroke="#a5b4fc"/>
+    <text x="110" y="293" text-anchor="middle" font-size="11" fill="#1f2933">双缓冲帧队列 · PSRAM</text>
+
+    <rect x="255" y="70" width="220" height="250" rx="12" fill="#ecfdf5" stroke="#a7f3d0"/>
+    <text x="365" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#065f46">处理 · 本体算法</text>
+    <rect x="272" y="120" width="186" height="70" rx="8" fill="#fff" stroke="#6ee7b7"/>
+    <text x="365" y="145" text-anchor="middle" font-size="12" fill="#1f2933">热点检测</text>
+    <text x="365" y="163" text-anchor="middle" font-size="10" fill="#64748b">中位数 + 泛洪 + 跨帧确认</text>
+    <text x="365" y="179" text-anchor="middle" font-size="10" fill="#64748b">app_hotspot</text>
+    <rect x="272" y="215" width="186" height="70" rx="8" fill="#fff" stroke="#6ee7b7"/>
+    <text x="365" y="240" text-anchor="middle" font-size="12" fill="#1f2933">区域查表</text>
+    <text x="365" y="258" text-anchor="middle" font-size="10" fill="#64748b">坐标 → 中文名/分组</text>
+    <text x="365" y="274" text-anchor="middle" font-size="10" fill="#64748b">app_calib (calib.csv)</text>
+
+    <rect x="530" y="70" width="450" height="250" rx="12" fill="#fffbeb" stroke="#fcd34d"/>
+    <text x="755" y="92" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">输出 · 三路本地 + 可选云</text>
+    <rect x="548" y="108" width="414" height="48" rx="8" fill="#fff" stroke="#fcd34d"/>
+    <text x="560" y="128" font-size="12" fill="#1f2933">① UART2 JSON → STM32</text>
+    <text x="560" y="145" font-size="10" fill="#64748b">app_link · 921600 · hot/hb/st 三类消息</text>
+    <rect x="548" y="164" width="414" height="48" rx="8" fill="#fff" stroke="#fcd34d"/>
+    <text x="560" y="184" font-size="12" fill="#1f2933">② SYN6288 语音播报</text>
+    <text x="560" y="201" font-size="10" fill="#64748b">app_tts · UART1 9600 · "X元件发热，温度未标定"</text>
+    <rect x="548" y="220" width="414" height="48" rx="8" fill="#fff" stroke="#fcd34d"/>
+    <text x="560" y="240" font-size="12" fill="#1f2933">③ SD 卡快照 / 日志</text>
+    <text x="560" y="257" font-size="10" fill="#64748b">app_storage · snapshots/frame_*.csv · logs/app.log</text>
+    <rect x="548" y="276" width="414" height="34" rx="8" fill="#f8fafc" stroke="#e2e8f0" stroke-dasharray="5 4"/>
+    <text x="560" y="297" font-size="11" fill="#94a3b8">④ WiFi / HTTP 云端（默认关闭）</text>
+
+    <!-- arrows -->
+    <line x1="110" y1="165" x2="110" y2="185" stroke="#475569" stroke-width="1.6" marker-end="url(#ar)"/>
+    <line x1="110" y1="245" x2="110" y2="265" stroke="#475569" stroke-width="1.6" marker-end="url(#ar)"/>
+    <line x1="185" y1="287" x2="272" y2="155" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+    <line x1="365" y1="190" x2="365" y2="215" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+    <line x1="458" y1="250" x2="548" y2="132" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+    <line x1="458" y1="250" x2="548" y2="188" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+    <line x1="458" y1="250" x2="548" y2="244" stroke="#475569" stroke-width="1.8" marker-end="url(#ar)"/>
+
+    <!-- auxiliary band -->
+    <rect x="20" y="360" width="960" height="170" rx="12" fill="#f1f5f9" stroke="#e2e8f0"/>
+    <text x="40" y="384" font-size="13" font-weight="bold" fill="#475569">辅助与调试子系统（初始化/自检为主，未进入主业务循环）</text>
+    <g font-size="11.5" fill="#1f2933">
+      <rect x="40" y="398" width="290" height="52" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="52" y="418" font-weight="bold">app_vision · OV2640 (plan B)</text>
+      <text x="52" y="436" fill="#64748b" font-size="10">LEDC XCLK + SCCB 探测 PID/VER，无采集</text>
+      <rect x="350" y="398" width="290" height="52" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="362" y="418" font-weight="bold">app_audio · ES8311</text>
+      <text x="362" y="436" fill="#64748b" font-size="10">I2C+I2S，板载 mic/PA，仅自检采集</text>
+      <rect x="660" y="398" width="300" height="52" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="672" y="418" font-weight="bold">app_console · REPL</text>
+      <text x="672" y="436" fill="#64748b" font-size="10">9 条 self-test 命令（s31&gt;）</text>
+      <text x="40" y="482" fill="#64748b" font-size="10.5">说明：标定数据由 USB 从热成像模组下载到 PSRAM（app_thermal_download_calibration），但 NUC 计算未实现。</text>
+      <text x="40" y="504" fill="#64748b" font-size="10.5">所有大块缓冲（帧、双缓冲、标定、热点工作区）均通过 heap_caps_malloc(MALLOC_CAP_SPIRAM) 分配。</text>
+    </g>
+  </svg>
+  <p class="cap">图 1 · 系统架构与数据流（根据源码调用关系整理绘制，非逐字稿）</p>
+</section>
+
+<!-- 4 -->
+<section id="s4" class="anchor">
+  <h2 class="sec"><span class="num">4</span>启动与主循环流程</h2>
+  <p><code>app_main()</code> 先按顺序初始化各模块并打印结果，分配 PSRAM 扫描缓冲，等待热成像连接（最多 10 s），若连接则下载一次标定数据，随后进入无限扫描循环。</p>
+  <svg viewBox="0 0 720 620" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <defs>
+      <marker id="ar2" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+      </marker>
+    </defs>
+    <g font-size="12" fill="#1f2933" text-anchor="middle">
+      <rect x="230" y="14" width="260" height="40" rx="8" fill="#dbeafe" stroke="#93c5fd"/>
+      <text x="360" y="39" font-weight="bold">app_main() 启动</text>
+
+      <rect x="210" y="70" width="300" height="70" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="360" y="90">顺序 init 并打印结果：</text>
+      <text x="360" y="108" font-size="10.5">SD → CALIB → THERMAL → VISION → AUDIO → TTS → LINK → CLOUD</text>
+      <text x="360" y="126" font-size="10.5">再 init HOTSPOT、CONSOLE</text>
+
+      <rect x="230" y="156" width="260" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="360" y="181">PSRAM 分配扫描缓冲 (38.4 KB)</text>
+
+      <rect x="230" y="212" width="260" height="40" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="360" y="237">wait_for_thermal(10000 ms)</text>
+
+      <polygon points="360,258 470,288 360,318 250,288" fill="#fef3c7" stroke="#fcd34d"/>
+      <text x="360" y="285" font-size="11">已连接?</text>
+      <text x="360" y="301" font-size="9" fill="#92400e">yes → 下载标定数据</text>
+
+      <rect x="230" y="334" width="260" height="44" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+      <text x="360" y="352" font-weight="bold" fill="#065f46">while(true) 主循环</text>
+      <text x="360" y="368" font-size="10">run_scan(pixels) + delay 5000 ms</text>
+
+      <rect x="150" y="398" width="420" height="150" rx="10" fill="#f8fafc" stroke="#e2e8f0"/>
+      <text x="360" y="418" font-weight="bold" fill="#475569" font-size="11.5">run_scan() 内部</text>
+      <g text-anchor="start" font-size="11">
+        <text x="170" y="440">① set_stage(SCAN, 0)</text>
+        <text x="170" y="461">② 采 30 帧 → 逐帧 app_hotspot_analyze 聚合</text>
+        <text x="170" y="482">③ set_stage(ANALYZE, 80) + 日志/存档</text>
+        <text x="170" y="503">④ 每个热点：查表 → link 发 JSON + TTS 播报</text>
+        <text x="170" y="524">⑤ 最新帧存快照 → 心跳 → set_stage(DONE, 100)</text>
+      </g>
+    </g>
+    <g stroke="#475569" stroke-width="1.6" marker-end="url(#ar2)" fill="none">
+      <line x1="360" y1="54" x2="360" y2="70"/>
+      <line x1="360" y1="140" x2="360" y2="156"/>
+      <line x1="360" y1="196" x2="360" y2="212"/>
+      <line x1="360" y1="252" x2="360" y2="262"/>
+      <line x1="360" y1="318" x2="360" y2="334"/>
+      <line x1="360" y1="378" x2="360" y2="398"/>
+      <path d="M570 473 C 640 473, 640 356, 492 356"/>
+    </g>
+    <text x="655" y="420" font-size="10.5" fill="#64748b">下一轮</text>
+  </svg>
+  <p class="cap">图 2 · 启动与主循环流程（根据 main.c 整理绘制，非逐字稿）</p>
+  <div class="note"><b>细节：</b><code>init_result_t results[]</code> 中 CALIB/THERMAL/VISION/AUDIO/TTS/LINK/CLOUD 的初值均为 <code>ESP_OK</code> 占位，之后才被真实返回值覆盖；CALIB 仅在 SD 挂载成功时才真正初始化，否则记为 <code>ESP_ERR_INVALID_STATE</code>（<code>main.c:116-141</code>）。CLOUD 在 WiFi 关闭时返回 <code>ESP_ERR_NOT_SUPPORTED</code>，属预期行为。</div>
+</section>
+
+<!-- 5 -->
+<section id="s5" class="anchor">
+  <h2 class="sec"><span class="num">5</span>功能模块总览（对比表）</h2>
+  <table>
+    <tr><th>模块</th><th>职责</th><th>关键外设/依赖</th><th>在主业务中</th><th>状态</th></tr>
+    <tr><td><code>app_thermal</code></td><td>USB Host 驱动热成像、帧解析、标定下载</td><td>USB Host, PSRAM</td><td>核心采集</td><td><span class="tag done">已实现</span></td></tr>
+    <tr><td><code>app_hotspot</code></td><td>热点检测（中位数/泛洪/跨帧确认/置信度）</td><td>PSRAM 工作区</td><td>核心算法</td><td><span class="tag done">已实现</span></td></tr>
+    <tr><td><code>app_calib</code></td><td>读取区域表，坐标→中文名/分组</td><td>SD (calib.csv)</td><td>核心查表</td><td><span class="tag part">依赖SD</span></td></tr>
+    <tr><td><code>app_storage</code></td><td>SD/FATFS 挂载、日志、快照、读写</td><td>SDMMC 4线</td><td>核心存储</td><td><span class="tag done">已实现</span></td></tr>
+    <tr><td><code>app_link</code></td><td>与 STM32 的 JSON 行协议 + 心跳 + 阶段</td><td>UART2 921600</td><td>核心输出</td><td><span class="tag done">已实现</span></td></tr>
+    <tr><td><code>app_tts</code></td><td>UTF8→GB2312 + SYN6288 播报</td><td>UART1 9600</td><td>核心输出</td><td><span class="tag part">波特率待核</span></td></tr>
+    <tr><td><code>app_cloud</code></td><td>WiFi/HTTP POST 上报热点 JSON 与快照</td><td>WiFi, HTTP</td><td>可选，默认关</td><td><span class="tag off">默认关闭</span></td></tr>
+    <tr><td><code>app_audio</code></td><td>ES8311 初始化 + 1 秒采集自检</td><td>I2C0, I2S0, PA</td><td>仅自检</td><td><span class="tag part">待电气验证</span></td></tr>
+    <tr><td><code>app_vision</code></td><td>OV2640 SCCB 探测 PID/VER</td><td>LEDC, I2C1</td><td>仅探测(plan B)</td><td><span class="tag part">无采集</span></td></tr>
+    <tr><td><code>app_console</code></td><td>REPL 调试命令 9 条</td><td>UART0 REPL</td><td>调试</td><td><span class="tag done">已实现</span></td></tr>
+    <tr><td><code>main</code></td><td>初始化编排 + 扫描循环</td><td>FreeRTOS</td><td>调度中枢</td><td><span class="tag done">已实现</span></td></tr>
+  </table>
+</section>
+
+<!-- 6 -->
+<section id="s6" class="anchor">
+  <h2 class="sec"><span class="num">6</span>模块逐项详解</h2>
+
+  <h3>6.1 app_thermal · 热成像 USB 采集 <span class="src">app_thermal.c / .h</span></h3>
+  <ul>
+    <li><b>设备识别：</b>枚举 USB 设备，匹配 VID <code>0x833C</code> + PID <code>0x0001/0x0002</code>，查找必须的 3 个批量端点（CMD OUT <code>0x03</code>、ACK IN <code>0x82</code>、IMAGE IN <code>0x81</code>），标定端点 CALIB IN <code>0x84</code> / OUT <code>0x05</code>。</li>
+    <li><b>帧格式：</b>每帧 = 28 B 头 + 160×120×2 B 像素 + 28 B 尾；头 magic <code>0x1BB1B11B</code>、尾 magic <code>0x1BB1B11C</code>，头尾 frame_id 必须一致，否则丢弃/失败计数。</li>
+    <li><b>解析状态机：</b><code>parse_image_bytes()</code> 用滑动缓冲查找头 magic、校验尾 magic、处理跨包拆分的 magic，坏帧逐字节滑动重同步。</li>
+    <li><b>双缓冲 + 队列：</b>两个 PSRAM 帧缓冲 + slot 元数据 + 长度 1 的 queue（<code>xQueueOverwrite</code>），新帧覆盖旧帧；<code>thermal_get_frame()</code> 阻塞取帧，<code>app_thermal_get_latest()</code> 取最新。</li>
+    <li><b>命令事务：</b><code>command_transaction()</code> 用互斥锁串行化"下发命令 → 等 ACK"，命令含 GET_PARAMETER_1/2、GET_CALI_INFO、SET_SHUTTER、START/STOP_IMAGE；各自有超时。</li>
+    <li><b>掉线重连：</b>独立 task 每 500 ms 扫描设备，<code>DEV_GONE</code> 时关闭设备、等待 5 s 重连；连续失败 5 次拉长重试。</li>
+    <li><b>标定下载：</b>暂停图像流 → GET_CALI_INFO 读长度 → 分块从 CALIB IN 下载（单块 ≤65472 B，超时 60 s）→ 存 PSRAM（容量 2 MB）→ 恢复图像流。<b>只下载存储，不做 NUC 计算。</b></li>
+    <li><b>自检：</b><code>app_thermal_self_test()</code> 采 10 个不同帧，算 fps、帧号连续性、中心 raw 值。</li>
+  </ul>
+  <div class="danger"><b>关键口径：</b><code>raw_to_celsius()</code> 直接返回 <code>NAN</code> 并打警告："uncalibrated… do not report raw counts as Celsius"。这是全工程温度链路的边界，务必保留。</div>
+
+  <h3>6.2 app_hotspot · 热点检测 <span class="src">app_hotspot.c / .h</span></h3>
+  <p>详见 <a href="#s7" style="color:var(--blue)">第 7 节</a>。核心：全图中位数 → 相对阈值 → 4 邻域泛洪找连通域 → 面积过滤 → 跨帧位置匹配确认 → 置信度评分 → 输出 ≤8 个热点，温度字段来自未标定的 <code>raw_to_celsius()</code>。</p>
+
+  <h3>6.3 app_calib · 区域查表 <span class="src">app_calib.c / .h</span></h3>
+  <ul>
+    <li>从 <code>/sdcard/calib.csv</code> 解析 <code>组名,中文名,x0,y0,x1,y1</code>，最多 64 条；校验矩形合法性和边界。</li>
+    <li><code>app_calib_find(x,y)</code> 遍历矩形，返回第一个包含该坐标的区域条目；未命中/SD 不可用时返回 "UNKNOWN"/"未知区域"。</li>
+    <li>SD 不可用进入 "coordinates-only mode"（只给坐标不给名称）。</li>
+  </ul>
+
+  <h3>6.4 app_storage · 存储 <span class="src">app_storage.c / .h</span></h3>
+  <ul>
+    <li>SDMMC slot0，4 线，20 MHz；挂载 FATFS 到 <code>/sdcard</code>（挂载失败不自动格式化）；创建 frames/、snapshots/、logs/ 目录。</li>
+    <li><code>app_storage_logf()</code>：带本地时间戳追加写 <code>logs/app.log</code>，用互斥锁保护并发。</li>
+    <li><code>app_storage_write_thermal_snapshot()</code>：把整帧 160×120 写成 <code>snapshots/frame_%06d.csv</code>（首行注释含 frame_id/fpa_raw，矩阵按行逗号分隔）。</li>
+    <li><code>app_storage_self_test()</code>：列目录 + 写读 1 KB 校验（0xA5）。</li>
+  </ul>
+
+  <h3>6.5 app_link · STM32 串口链路 <span class="src">app_link.c / .h</span></h3>
+  <ul>
+    <li>UART2，921600 baud；独立 task 负责队列发送 + 每秒一次心跳；<code>sent_bytes</code> 统计用于自检。</li>
+    <li>三类消息：<code>hot</code>（热点）、<code>hb</code>（心跳）、<code>st</code>（阶段+进度）。JSON 转义处理引号/反斜杠，中文按 12 字符截断，UTF-8 安全。</li>
+    <li><b>温度哨兵：</b>NAN 温度经 <code>(t &gt; -272)</code> 判断落空，输出 <code>-273.0</code>（合法 JSON，避免 <code>nan</code> 破坏对端解析）。</li>
+  </ul>
+
+  <h3>6.6 app_tts · 语音播报 <span class="src">app_tts.c / .h</span></h3>
+  <ul>
+    <li>UART1，9600 baud（注释注明 baud 待核实、模块须为 3.3 V 逻辑版本）；独立 task 从队列取文本。</li>
+    <li>自带精简 UTF-8→GB2312 字库（约 67 个汉字），ASCII 直通，未收录字符跳过并告警；按 SYN6288 帧格式 <code>FD len 01 00 + 文本</code> 发送。</li>
+    <li><code>app_tts_speak_hotspot()</code>：温度有效时播报"X元件发热，温度N度"（数字转中文：零~九十九）；无效时播报"X元件发热，温度未标定"。当前温度恒无效 → 恒播"未标定"。</li>
+  </ul>
+
+  <h3>6.7 app_cloud · 云端（默认关闭）<span class="src">app_cloud.c / .h</span></h3>
+  <ul>
+    <li><code>APP_WIFI_ENABLE=0</code> 时所有函数直接返回 <code>ESP_ERR_NOT_SUPPORTED</code>，空 SSID/URL 不联网。</li>
+    <li>启用后：NVS 初始化 → STA 模式连 WiFi → 事件组等待 GOT_IP / DISCONNECTED → HTTP POST JSON（application/json）或快照 CSV（text/csv），仅接受 2xx。</li>
+  </ul>
+
+  <h3>6.8 app_audio / app_vision / app_console <span class="src">对应 .c / .h</span></h3>
+  <ul>
+    <li><b>app_audio：</b>I2C0 挂 ES8311（7-bit 地址 0x18），I2S0 主机 24 kHz/16 bit/mono，MCLK/BCLK/WS/DOUT/DIN + PA GPIO；输入增益 30 dB；自检采样 1 s 算 peak/rms/有效位数。外置 INMP441 走 <code>AUDIO_USE_EXTERNAL_I2S_MIC=0</code> 关闭。</li>
+    <li><b>app_vision：</b>LEDC 产生 20 MHz XCLK，I2C1 作 SCCB（地址 0x30）读 OV2640 的 PID(0x0A)/VER(0x0B)；只探测不采集，注释称 "plan B"。</li>
+    <li><b>app_console：</b>UART0 REPL（提示符 <code>s31&gt;</code>），注册 9 条命令（见 <a href="#s11" style="color:var(--blue)">第 11 节</a>）。</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section id="s7" class="anchor">
+  <h2 class="sec"><span class="num">7</span>热点检测算法</h2>
+  <p>算法不依赖绝对温度，而是找"显著高于全图背景"的连通高温区域，并要求连续两帧位置稳定以抑制噪点。</p>
+  <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+    <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker></defs>
+    <g font-size="11.5" fill="#1f2933" text-anchor="middle">
+      <rect x="12" y="40" width="120" height="56" rx="8" fill="#dbeafe" stroke="#93c5fd"/>
+      <text x="72" y="62">输入帧</text><text x="72" y="80" font-size="10">160×120 raw</text>
+
+      <rect x="152" y="40" width="130" height="56" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="217" y="62">全图中位数</text><text x="217" y="80" font-size="10">快速选择 select_kth</text>
+
+      <rect x="302" y="40" width="140" height="56" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="372" y="62">阈值筛选</text><text x="372" y="80" font-size="10">raw ≥ median+1500</text>
+
+      <rect x="462" y="40" width="140" height="56" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="532" y="62">4邻域泛洪</text><text x="532" y="80" font-size="10">连通域 + 质心</text>
+
+      <rect x="622" y="40" width="130" height="56" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="687" y="62">面积过滤</text><text x="687" y="80" font-size="10">area ≥ 3 px</text>
+
+      <rect x="12" y="150" width="160" height="60" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+      <text x="92" y="172">跨帧确认</text><text x="92" y="190" font-size="10">半径 3 px 内匹配上一帧</text>
+
+      <rect x="192" y="150" width="190" height="60" rx="8" fill="#ecfdf5" stroke="#6ee7b7"/>
+      <text x="287" y="172">置信度评分</text><text x="287" y="190" font-size="10">0.4 + 0.3·面积分 + 0.3·差值分</text>
+
+      <rect x="402" y="150" width="180" height="60" rx="8" fill="#fef3c7" stroke="#fcd34d"/>
+      <text x="492" y="172">温度 = NAN</text><text x="492" y="190" font-size="10">raw_to_celsius 未标定</text>
+
+      <rect x="602" y="150" width="150" height="60" rx="8" fill="#fffbeb" stroke="#fcd34d"/>
+      <text x="677" y="172">输出 ≤8 热点</text><text x="677" y="190" font-size="10">x,y,raw_delta,area,conf</text>
+    </g>
+    <g stroke="#475569" stroke-width="1.6" marker-end="url(#ar3)" fill="none">
+      <line x1="132" y1="68" x2="152" y2="68"/><line x1="282" y1="68" x2="302" y2="68"/>
+      <line x1="442" y1="68" x2="462" y2="68"/><line x1="602" y1="68" x2="622" y2="68"/>
+      <path d="M687 96 C 687 125, 92 125, 92 150"/>
+      <line x1="172" y1="180" x2="192" y2="180"/><line x1="382" y1="180" x2="402" y2="180"/>
+      <line x1="582" y1="180" x2="602" y2="180"/>
+    </g>
+    <text x="470" y="245" font-size="11" fill="#64748b">置信度 = min( 0.4 + 0.3·min(area/16,1) + 0.3·min(peak_delta/(2·1500),1), 1.0 )</text>
+    <text x="470" y="266" font-size="10" fill="#94a3b8">仅"与上一帧匹配"的连通域进入确认结果；每帧结束更新 s_previous</text>
+  </svg>
+  <p class="cap">图 3 · 热点检测算法流程（根据 app_hotspot.c 整理绘制，非逐字稿）</p>
+  <table>
+    <tr><th>参数</th><th>值</th><th>含义 / 来源</th></tr>
+    <tr><td><code>HOTSPOT_RAW_DELTA</code></td><td>1500</td><td>相对中位数的原始计数差阈值，估算值待黑体/现场标定，非 8℃ 换算（<code>app_config.h:8-10</code>）</td></tr>
+    <tr><td><code>HOTSPOT_MIN_AREA_PX</code></td><td>3</td><td>连通域最小像素数</td></tr>
+    <tr><td><code>HOTSPOT_MAX_RESULTS</code></td><td>8</td><td>最大输出热点数</td></tr>
+    <tr><td><code>HOTSPOT_MATCH_RADIUS_PX</code></td><td>3</td><td>跨帧确认半径（像素）</td></tr>
+    <tr><td><code>HOTSPOT_CONSECUTIVE_FRAMES</code></td><td>2</td><td>定义的连续帧数；实现以"与上一帧匹配"（<code>s_previous</code>）方式体现</td></tr>
+  </table>
+</section>
+
+<!-- 8 -->
+<section id="s8" class="anchor">
+  <h2 class="sec"><span class="num">8</span>标定与区域映射</h2>
+  <p>系统有两层"标定"，含义不同，务必区分：</p>
+  <table>
+    <tr><th>层次</th><th>内容</th><th>来源</th><th>用途 / 状态</th></tr>
+    <tr><td>辐射/温度标定</td><td>从热成像模组下载的标定数据（≤2 MB，48 个 map × 16-bit）</td><td>USB CALIB IN 端点</td><td>仅下载并存入 PSRAM；<b>NUC 计算未实现</b>，故温度仍为 NAN</td></tr>
+    <tr><td>区域/语义标定</td><td><code>calib.csv</code>：组名,中文名,x0,y0,x1,y1</td><td>SD 卡 <code>/sdcard/calib.csv</code></td><td>把热点坐标映射为"哪个元件的哪个区域"，供上报与播报使用</td></tr>
+  </table>
+  <div class="codebox">
+    <div class="bar"><span>calib.csv 格式（示例，可复制替换）</span><button onclick="cp(this)">复制</button></div>
+    <pre id="code1"># 组名,中文名,x0,y0,x1,y1  (坐标需落在 0..159 / 0..119 内)
+U3-PWR,电源区,30,16,40,24
+U7-REG,稳压区,60,40,72,52
+SENSOR,传感区,90,70,102,82
+MOTOR-DRV,驱动区,120,90,134,104</pre>
+  </div>
+  <p class="src">格式依据：<code>app_calib.c:parse_csv_line()</code>；示例中的组名与坐标取自控制台自检里出现过的 "U3-PWR/电源区" 等写法，其余为演示填充，非设备真实标定数据。</p>
+</section>
+
+<!-- 9 -->
+<section id="s9" class="anchor">
+  <h2 class="sec"><span class="num">9</span>通信协议与数据格式</h2>
+  <h3>9.1 STM32 链路（UART2，921600，换行结尾的 JSON 行）</h3>
+  <div class="codebox">
+    <div class="bar"><span>三类消息示例（可复制）</span><button onclick="cp(this)">复制</button></div>
+    <pre id="code2">{"type":"hot","id":1500,"grp":"U3-PWR","zh":"电源区","x":34,"y":18,"t":-273.0,"dt":-273.0,"px":7,"conf":0.86}
+{"type":"hb","ts":123456789,"n":2}
+{"type":"st","stage":"scan","prog":0}</pre>
+  </div>
+  <table>
+    <tr><th>字段</th><th>含义</th><th>备注</th></tr>
+    <tr><td><code>type</code></td><td>hot / hb / st</td><td>热点 / 心跳 / 阶段状态</td></tr>
+    <tr><td><code>id</code></td><td>hot: 峰值 raw_delta（被当作 id 字段）</td><td>源码 <code>app_link.c:174</code></td></tr>
+    <tr><td><code>grp</code> / <code>zh</code></td><td>分组 ID / 中文区域名</td><td>来自 calib.csv 查表，未命中为 UNKNOWN/未知区域</td></tr>
+    <tr><td><code>x</code> / <code>y</code></td><td>热点质心坐标</td><td>0..159 / 0..119</td></tr>
+    <tr><td><code>t</code> / <code>dt</code></td><td>温度 / 温差</td><td><b>当前恒为 -273.0 哨兵</b>（温度未标定）</td></tr>
+    <tr><td><code>px</code> / <code>conf</code></td><td>面积像素 / 置信度</td><td>conf ∈ [0.4, 1.0]</td></tr>
+    <tr><td><code>ts</code> / <code>n</code></td><td>心跳时间戳(ms) / 热点数</td><td>心跳周期 1000 ms</td></tr>
+    <tr><td><code>stage</code> / <code>prog</code></td><td>idle/scan/analyze/done / 进度</td><td>scan=0、analyze=80、done=100</td></tr>
+  </table>
+
+  <h3>9.2 SYN6288 语音帧（UART1，9600）</h3>
+  <p>帧结构 <code>FD &lt;len-hi&gt; &lt;len-lo&gt; 01 00 &lt;GB2312 文本&gt;</code>，其中 <code>len = 文本字节数 + 1</code>；文本由精简 UTF-8→GB2312 表转换而来。</p>
+
+  <h3>9.3 热成像 USB 命令码（节选）</h3>
+  <div class="codebox">
+    <div class="bar"><span>关键宏（来自 app_config.h / app_thermal.c）</span><button onclick="cp(this)">复制</button></div>
+    <pre id="code3">USB VID/PID        0x833C / 0x0001 或 0x0002
+端点  CMD_OUT 0x03  ACK_IN 0x82  IMAGE_IN 0x81  CALIB_IN 0x84  CALIB_OUT 0x05
+帧头  0x1BB1B11B   帧尾 0x1BB1B11C   (头28B + 160*120*2B + 尾28B)
+命令  GET_PARAMETER_1 0x6BB6B66B ... 0x6BB6B679
+      SET_SHUTTER 0x6BB6B672  START_IMAGE 0x6BB6B673  STOP_IMAGE 0x6BB6B674
+      GET_CALI_INFO 0x6BB6B66F  GET_CALI_FILE 0x6BB6B670</pre>
+  </div>
+</section>
+
+<!-- 10 -->
+<section id="s10" class="anchor">
+  <h2 class="sec"><span class="num">10</span>存储与引脚映射</h2>
+  <h3>10.1 SD 卡目录</h3>
+  <p><code>/sdcard</code> 下：<code>calib.csv</code>（区域表）、<code>frames/</code>、<code>snapshots/frame_%06d.csv</code>、<code>logs/app.log</code> 与 <code>logs/s31_sd_test.bin</code>（自检文件）。</p>
+  <h3>10.2 引脚映射（bsp_pinmap.h）</h3>
+  <table>
+    <tr><th>外设</th><th>引脚 / 接口</th><th>说明</th></tr>
+    <tr><td>Console</td><td>UART0 · TX GPIO58 / RX GPIO59</td><td>板级固定，不重映射</td></tr>
+    <tr><td>RGB LED / BOOT</td><td>GPIO60 / GPIO61</td><td>保留，未驱动</td></tr>
+    <tr><td>TF 卡 SDMMC</td><td>CLK24 CMD25 D0=20 D1=21 D2=22 D3=23</td><td>slot0 固定 IOMUX，4 线</td></tr>
+    <tr><td>热成像</td><td>原生 USB D+/D-</td><td>MAG160Core，不占 GPIO</td></tr>
+    <tr><td>OV2640 DVP (plan B)</td><td>XCLK48 PCLK42 VSYNC43 HREF44 SIOD47 SIOC49 D0..D7=38,39,40,2,3,1,35,36</td><td>XCLK 20 MHz；避开 GPIO0/45/46</td></tr>
+    <tr><td>SYN6288 TTS</td><td>UART1 · TX GPIO4</td><td><b>仅 3.3 V 逻辑</b>，5 V 会损坏 S31</td></tr>
+    <tr><td>STM32 Link</td><td>UART2 · TX GPIO46 / RX GPIO37</td><td>TX 是 strapping 脚（ROM log select），必要时改这一处宏</td></tr>
+    <tr><td>ES8311 音频</td><td>I2C0 SCL50/SDA51；I2S0 MCLK52 BCLK53 DIN54 WS55 DOUT56；PA GPIO57</td><td>来自 xiaozhi 板定义</td></tr>
+    <tr><td>外置 INMP441</td><td>BCLK35 WS36 DIN37</td><td>保留但 <code>AUDIO_USE_EXTERNAL_I2S_MIC=0</code> 关闭</td></tr>
+  </table>
+</section>
+
+<!-- 11 -->
+<section id="s11" class="anchor">
+  <h2 class="sec"><span class="num">11</span>调试命令速查</h2>
+  <p>串口 REPL 提示符 <code>s31&gt;</code>（UART0）。命令清单可一键复制：</p>
+  <div class="codebox">
+    <div class="bar"><span>console 命令（可复制）</span><button onclick="cp(this)">复制</button></div>
+    <pre id="code4">thermal_test   采集10帧，打印速率/尺寸/帧号连续性
+usb_probe      打印 MAG160Core VID/PID/端点/claim 状态
+hotspot_test   用固定合成数据跑热点逻辑并打印结果
+sd_test        SD 卡 挂载/列表/读写自检
+calib_test     打印标定表条目数与前几条
+tts_test       播放测试语句
+link_test      向 STM32 发 5 帧心跳 + 1 帧热点
+cam_test       探测 OV2640 SCCB，打印 PID/VER
+audio_test     采集 1 秒并打印峰值/RMS/有效位</pre>
+  </div>
+  <p class="src">来源：<code>app_console.c:153-161</code>。其中 <code>hotspot_test</code> 用 20000 背景 + 22000 的 4×4 方块合成数据，连跑两次分析以触发跨帧确认。</p>
+</section>
+
+<!-- 12 -->
+<section id="s12" class="anchor">
+  <h2 class="sec"><span class="num">12</span>实现状态与边界（重要口径）</h2>
+  <p>下表明确区分"可用能力"与"占位/未标定/未接线/默认关闭"，避免把能力边界误读为已完成指标。</p>
+  <table>
+    <tr><th>项目</th><th>状态</th><th>证据 / 说明</th></tr>
+    <tr><td>热成像采集与帧解析</td><td><span class="tag done">可用</span></td><td>USB Host 枚举、帧状态机、双缓冲、重连均实现</td></tr>
+    <tr><td>热点检测（相对阈值）</td><td><span class="tag done">可用</span></td><td>算法完整；阈值 1500 为估算，待标定</td></tr>
+    <tr><td>区域查表 / 中文播报</td><td><span class="tag part">取决于 calib.csv</span></td><td>无表则退化为坐标模式 / "未知区域"</td></tr>
+    <tr><td>STM32 JSON 上报</td><td><span class="tag done">可用</span></td><td>波特率与对端需现场核对</td></tr>
+    <tr><td>SD 快照 / 日志</td><td><span class="tag done">可用</span></td><td>依赖 SD 插入且挂载成功</td></tr>
+    <tr><td>温度输出</td><td><span class="tag off">未标定</span></td><td><code>raw_to_celsius()</code> 返回 NAN；JSON 用 -273.0，语音说"未标定"</td></tr>
+    <tr><td>NUC 非均匀性校正</td><td><span class="tag off">未实现</span></td><td><code>main.c:157</code> 明确 out of scope，仅下载标定数据</td></tr>
+    <tr><td>WiFi / 云端</td><td><span class="tag off">默认关闭</span></td><td><code>APP_WIFI_ENABLE=0</code>，空凭据不联网</td></tr>
+    <tr><td>OV2640 可见光采集</td><td><span class="tag off">未实现</span></td><td>plan B，仅 SCCB 探测，无图像采集链路</td></tr>
+    <tr><td>板载 ES8311 音频业务</td><td><span class="tag part">仅自检</span></td><td>24 kHz 与板定义匹配但电气/音频验证 pending；无业务音频流</td></tr>
+    <tr><td>RGB LED / BOOT 按键</td><td><span class="tag off">未驱动</span></td><td>引脚保留</td></tr>
+    <tr><td>SYN6288 波特率</td><td><span class="tag part">待核实</span></td><td>9600 为注释标注的待验证值</td></tr>
+  </table>
+  <div class="note"><b>总结口径：</b>本项目是一个"框架已搭好、主业务闭环可跑、量值口径诚实留白"的工程。核心价值在采集→分析→查表→多通道输出的系统集成；<b>定量温度能力（℃）尚未建立</b>，任何"检测温度="的说法目前都不成立，只能说"检出了相对更热的区域"。</div>
+</section>
+
+<!-- 13 -->
+<section id="s13" class="anchor">
+  <h2 class="sec"><span class="num">13</span>避坑清单</h2>
+  <ul>
+    <li><b>别把 raw count 当摄氏度。</b><code>raw_to_celsius()</code> 恒为 NAN；看到 <code>t=-273.0</code> 是哨兵，不是真的零下 273 度测量值。</li>
+    <li><b>别把 HOTSPOT_RAW_DELTA=1500 说成 "8℃"。</b>源码注释明确否认这种换算，它是待标定的相对计数差。</li>
+    <li><b>esp32s31 是 preview 目标。</b><code>idf.py</code> 需带 <code>--preview</code>；且必须在已激活 IDF 的终端运行（沿用用户环境约定）。</li>
+    <li><b>编译告警即错误（-Werror）。</b>新增代码须消除所有 warning，否则编译失败。</li>
+    <li><b>SYN6288 只能接 3.3 V 逻辑。</b>接 5 V RX 有损坏 S31 GPIO 的风险。</li>
+    <li><b>LINK TX 用 GPIO46，是 strapping 脚。</b>若影响启动/ROM 日志，改 <code>PINMAP_LINK_UART_TX</code> 一处宏，并注意交叉接线+共地。</li>
+    <li><b>热成像掉线会重启图像流。</b>标定下载期间会暂停图像流；失败会 <code>goto restart</code> 恢复，勿假设下载期间仍有新帧。</li>
+    <li><b>标定数据只存不算。</b>PSRAM 里有标定数据不代表温度已可用，NUC 未实现。</li>
+    <li><b>SD 不挂载，标定查表就退化。</b>CALIB 初始化依赖 SD；无 <code>calib.csv</code> 时只有坐标、无中文名。</li>
+    <li><b>热点结果依赖连续两帧。</b>单帧出现的瞬时热点会被跨帧确认过滤，控制台 <code>hotspot_test</code> 特意跑两次就是为此。</li>
+    <li><b>云端默认不发数据。</b>要联网必须同时置 <code>APP_WIFI_ENABLE=1</code> 并填 SSID/密码/URL。</li>
+    <li><b>音频/摄像头是"预留能力"。</b>不要把 <code>cam_test</code> 探测成功理解为已能拍照，也不要把 <code>audio_test</code> 当作业务语音链路。</li>
+  </ul>
+</section>
+
+<!-- 14 -->
+<section id="s14" class="anchor">
+  <h2 class="sec"><span class="num">14</span>可执行行动清单</h2>
+  <p>按优先级排列，供后续推进（本报告只提供清单，不代为执行）：</p>
+  <h4>P0 · 让"温度"从 NAN 变成可用的 ℃</h4>
+  <ul class="chk">
+    <li>确认 MAG160Core 标定数据格式（48 个 map 的排布、raw→温度的换算模型）与厂商资料</li>
+    <li>实现或接入 NUC 校正，让 <code>raw_to_celsius()</code> 返回真实物理量</li>
+    <li>用黑体炉做温度标定，重新确定 <code>HOTSPOT_RAW_DELTA</code> 的℃等效值</li>
+  </ul>
+  <h4>P1 · 硬件在环验证</h4>
+  <ul class="chk">
+    <li>核实 SYN6288 模块实际波特率与电平（当前 9600 待验证、须 3.3 V）</li>
+    <li>核实 STM32 对端 UART2 波特率 921600 与交叉接线、共地</li>
+    <li>做音频电气验证（ES8311 24 kHz / mic / NS4150B 功放）</li>
+    <li>若需 strapping GPIO46，验证启动与 ROM 日志是否受影响</li>
+  </ul>
+  <h4>P2 · 业务完善</h4>
+  <ul class="chk">
+    <li>准备真实 <code>calib.csv</code>（区域坐标对照表），使中文播报与分组名生效</li>
+    <li>决定是否启用 OV2640 图像采集（plan B 落地或移除相关代码）</li>
+    <li>按需开启云端：填 SSID/密码/上传 URL，验证 HTTP POST</li>
+    <li>接入 RGB LED / BOOT 按键做状态指示与交互</li>
+  </ul>
+  <h4>P3 · 工程质量</h4>
+  <ul class="chk">
+    <li>在已激活 IDF 的环境中以 <code>--preview</code> 编译，验证 -Werror 全通过</li>
+    <li>逐条跑 9 个 console 自检命令，记录实测 fps/连续性/SD 读写/热点结果</li>
+    <li>补充快照 CSV 与日志的现场样例，核对数据口径</li>
+  </ul>
+</section>
+
+<!-- 15 -->
+<section id="s15" class="anchor">
+  <h2 class="sec"><span class="num">15</span>来源与说明</h2>
+  <h4>分析对象（全部 28 个文件，均来自用户给定目录）</h4>
+  <p class="src">
+    工程文件：<code>CMakeLists.txt</code>、<code>partitions.csv</code>、<code>sdkconfig.defaults</code>、<code>main/CMakeLists.txt</code>、<code>main/idf_component.yml</code>。<br>
+    入口：<code>main/main.c</code>。<br>
+    配置/引脚：<code>main/app_config.h</code>、<code>main/bsp_pinmap.h</code>。<br>
+    模块（C + H 各 1）：<code>app_thermal</code>、<code>app_hotspot</code>、<code>app_calib</code>、<code>app_storage</code>、<code>app_vision</code>、<code>app_audio</code>、<code>app_tts</code>、<code>app_link</code>、<code>app_cloud</code>、<code>app_console</code>。
+  </p>
+  <h4>方法与口径</h4>
+  <ul>
+    <li>本报告为<b>静态源码分析</b>：逐文件阅读得出，<b>未编译、未烧录、未上电、未做硬件实测</b>；所有"状态/可用性"结论均为代码层面的实现判断，非实测结论。</li>
+    <li>凡涉及具体数值、协议、引脚，均在表中标注源文件与行号，便于回查核对。</li>
+    <li>第 3、4、7 节的架构图/流程图为<b>根据源码调用关系整理绘制，非逐字稿</b>；第 8 节 calib.csv、第 9 节消息示例中的部分取值（如演示坐标、id=1500）为说明用填充，已在对应位置注明，非设备真实数据。</li>
+    <li>"ESP32-S31 / esp32s31 为 preview 目标、需 --preview、须在激活 IDF 的终端编译"沿用用户既有开发环境约定（<code>开发环境说明_ESP32-S31.md</code>），本报告不另行假设或验证。</li>
+    <li>代码注释中标注为"估算 / 待验证 / pending / out of scope"的内容，本报告一律按<b>未标定 / 待验证 / 未实现</b>口径呈现，不作事实性夸大。</li>
+  </ul>
+  <div class="ok"><b>一句话免责：</b>本报告描述的是"源码实现了什么"，不是"设备实测达到了什么"。任何用于对外汇报的温度、精度、性能指标，都应在完成标定与硬件在环验证后重新出具。</div>
+</section>
+
+<footer>
+  ESP32-S31 热成像机器人源码功能解析报告 · 生成于 2026-11-19 · 单文件自包含，可直接打印为 PDF
+</footer>
+</div>
+
+<script>
+function cp(btn){
+  var box=btn.closest('.codebox');
+  var pre=box.querySelector('pre');
+  var txt=pre.innerText;
+  var done=function(){var o=btn.textContent;btn.textContent='已复制';setTimeout(function(){btn.textContent=o;},1200);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done,fallback);}
+  else{fallback();}
+  function fallback(){
+    var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){}
+    document.body.removeChild(ta);
+  }
+}
+</script>
+</body>
+</html>

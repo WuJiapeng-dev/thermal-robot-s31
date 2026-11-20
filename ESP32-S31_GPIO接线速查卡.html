@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32-S31 热成像 · GPIO 接线速查卡</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#fff; --ink:#1f2933; --muted:#5b6b7b; --line:#e2e8f0;
+    --accent:#0f766e; --blue:#1d4ed8; --warn:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;font-size:15px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 70px}
+  header.hero{background:linear-gradient(135deg,#0f766e,#115e59);color:#fff;padding:36px 22px 30px}
+  .hero-inner{max-width:1180px;margin:0 auto}
+  h1{margin:0 0 6px;font-size:27px}
+  .hero p{margin:3px 0;opacity:.92;font-size:14px}
+  code{font-family:"SFMono-Regular",Consolas,monospace;background:#eef2f7;padding:1px 6px;border-radius:5px;font-size:13px;color:#9a3412}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:18px 0;box-shadow:0 1px 3px rgba(16,24,40,.04)}
+  h2{font-size:20px;margin:0 0 12px;padding-bottom:10px;border-bottom:2px solid var(--accent)}
+  h3{font-size:16px;margin:18px 0 8px;color:var(--accent)}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13.7px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f5f4;color:#134e4a}
+  tr:nth-child(even) td{background:#fafbfc}
+  .danger{background:#fef2f2;border:1px solid #fecaca;border-left:4px solid var(--warn);border-radius:8px;padding:10px 15px;margin:12px 0}
+  .note{background:#fffbeb;border:1px solid #fcd34d;border-left:4px solid #d97706;border-radius:8px;padding:10px 15px;margin:12px 0}
+  .src{font-size:12px;color:var(--muted)}
+  svg{max-width:100%;height:auto;display:block;margin:6px auto}
+  .cap{font-size:12.5px;color:var(--muted);text-align:center;margin-top:-2px}
+  ul{margin:8px 0;padding-left:22px}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:20px 0 0}
+  @media print{
+    body{background:#fff;font-size:11.5px}
+    header.hero{background:#0f766e !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    section{break-inside:avoid;box-shadow:none;border:1px solid #ccc;margin:10px 0;padding:14px}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <h1>ESP32-S31 热成像 · GPIO 接线速查卡</h1>
+    <p>依据源码 <code style="background:rgba(255,255,255,.18);color:#fff">main/bsp_pinmap.h</code>（引脚）、<code style="background:rgba(255,255,255,.18);color:#fff">main/app_config.h</code>（频率/波特率）</p>
+    <p>生成日期 2026-11-19 · 浅色主题 · 可直接打印为 PDF · 均为源码静态定义，未经硬件实测</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <h2>一、接线总览图</h2>
+  <p class="src">根据 bsp_pinmap.h 整理绘制（非逐字稿）。中心为 ESP32-S31，四周为各元件；连线上的 GPIO 号以卡片内标注为准。</p>
+  <svg viewBox="0 0 1180 900" xmlns="http://www.w3.org/2000/svg" font-family="'PingFang SC','Microsoft YaHei',sans-serif">
+    <defs>
+      <marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
+    </defs>
+    <rect x="0" y="0" width="1180" height="900" fill="#f8fafc"/>
+
+    <!-- 连线（先画，置于卡片下层） -->
+    <g stroke="#94a3b8" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+      <path d="M290,88 C 380,120 420,300 492,394"/>
+      <path d="M290,225 C 380,240 430,330 492,410"/>
+      <path d="M290,357 C 380,370 440,410 492,432"/>
+      <path d="M370,532 C 420,520 450,495 492,478"/>
+      <path d="M890,152 C 800,170 760,300 688,398"/>
+      <path d="M890,338 C 810,350 760,395 688,418"/>
+      <path d="M890,465 C 810,465 760,452 688,448"/>
+      <path d="M890,615 C 815,600 760,510 688,486"/>
+    </g>
+
+    <!-- 中心芯片 -->
+    <rect x="492" y="370" width="196" height="140" rx="14" fill="#0f766e" stroke="#115e59" stroke-width="2"/>
+    <text x="590" y="410" text-anchor="middle" font-size="18" font-weight="bold" fill="#fff">ESP32-S31</text>
+    <text x="590" y="434" text-anchor="middle" font-size="11" fill="#d1fae5">IDF target: esp32s31</text>
+    <text x="590" y="456" text-anchor="middle" font-size="11" fill="#d1fae5">USB Host 原生 D+/D-</text>
+    <text x="590" y="478" text-anchor="middle" font-size="11" fill="#d1fae5">大缓冲全部在 PSRAM</text>
+    <text x="590" y="498" text-anchor="middle" font-size="10.5" fill="#a7f3d0">CH340 USB转串口 / UART</text>
+
+    <!-- A Console -->
+    <g>
+      <rect x="40" y="40" width="250" height="96" rx="10" fill="#fff" stroke="#1d4ed8" stroke-width="2"/>
+      <rect x="40" y="40" width="250" height="26" rx="10" fill="#dbeafe"/>
+      <text x="52" y="58" font-size="13" font-weight="bold" fill="#1e3a8a">调试串口 Console (UART0)</text>
+      <text x="52" y="84" font-size="11.5" fill="#1f2933">TX → GPIO58　RX → GPIO59</text>
+      <text x="52" y="104" font-size="10.5" fill="#64748b">板级固定，本项目不重映射</text>
+      <text x="52" y="122" font-size="10.5" fill="#64748b">日志 / REPL 提示符 s31&gt;</text>
+    </g>
+
+    <!-- B TF卡 -->
+    <g>
+      <rect x="40" y="160" width="250" height="130" rx="10" fill="#fff" stroke="#6d28d9" stroke-width="2"/>
+      <rect x="40" y="160" width="250" height="26" rx="10" fill="#ede9fe"/>
+      <text x="52" y="178" font-size="13" font-weight="bold" fill="#4c1d95">TF 卡 (SDMMC slot0, 4线)</text>
+      <text x="52" y="204" font-size="11.5" fill="#1f2933">CLK → GPIO24　CMD → GPIO25</text>
+      <text x="52" y="224" font-size="11.5" fill="#1f2933">D0→GPIO20　D1→GPIO21</text>
+      <text x="52" y="244" font-size="11.5" fill="#1f2933">D2→GPIO22　D3→GPIO23</text>
+      <text x="52" y="266" font-size="10.5" fill="#64748b">IOMUX 固定脚，时钟 20 MHz</text>
+      <text x="52" y="283" font-size="10.5" fill="#64748b">存 calib.csv / 快照 / 日志</text>
+    </g>
+
+    <!-- C 热成像 -->
+    <g>
+      <rect x="40" y="315" width="250" height="86" rx="10" fill="#fff" stroke="#0f766e" stroke-width="2"/>
+      <rect x="40" y="315" width="250" height="26" rx="10" fill="#ccfbf1"/>
+      <text x="52" y="333" font-size="13" font-weight="bold" fill="#065f46">热成像 MAG160Core (USB)</text>
+      <text x="52" y="359" font-size="11.5" fill="#1f2933">原生 USB D+ / D-，不占 GPIO</text>
+      <text x="52" y="379" font-size="10.5" fill="#64748b">VID 0x833C / PID 0x0001|0002</text>
+      <text x="52" y="396" font-size="10.5" fill="#64748b">160×120 16-bit 帧</text>
+    </g>
+
+    <!-- G ES8311 -->
+    <g>
+      <rect x="40" y="430" width="330" height="200" rx="10" fill="#fff" stroke="#4338ca" stroke-width="2"/>
+      <rect x="40" y="430" width="330" height="26" rx="10" fill="#e0e7ff"/>
+      <text x="52" y="448" font-size="13" font-weight="bold" fill="#3730a3">板载音频 ES8311 + 麦克风 + NS4150B</text>
+      <text x="52" y="476" font-size="11.5" fill="#1f2933">I2C0：SCL → GPIO50　SDA → GPIO51</text>
+      <text x="52" y="498" font-size="11.5" fill="#1f2933">I2S0：MCLK→52　BCLK→53　WS→55</text>
+      <text x="52" y="518" font-size="11.5" fill="#1f2933">DIN→54 (mic输入)　DOUT→56 (播放)</text>
+      <text x="52" y="538" font-size="11.5" fill="#1f2933">PA 功放使能 → GPIO57</text>
+      <text x="52" y="562" font-size="10.5" fill="#64748b">来自 xiaozhi 板定义；24 kHz / 16 bit / 单声道</text>
+      <text x="52" y="580" font-size="10.5" fill="#64748b">codec 7-bit 地址 0x18；仅自检，无业务音频流</text>
+      <text x="52" y="600" font-size="10.5" fill="#64748b">电气/音频验证 pending</text>
+    </g>
+
+    <!-- D OV2640 -->
+    <g>
+      <rect x="890" y="40" width="250" height="225" rx="10" fill="#fff" stroke="#0e7490" stroke-width="2"/>
+      <rect x="890" y="40" width="250" height="26" rx="10" fill="#cffafe"/>
+      <text x="902" y="58" font-size="13" font-weight="bold" fill="#155e75">OV2640 摄像头 (DVP, plan B)</text>
+      <text x="902" y="84" font-size="11.5" fill="#1f2933">XCLK→48 (20MHz)　PCLK→42</text>
+      <text x="902" y="103" font-size="11.5" fill="#1f2933">VSYNC→43　HREF→44</text>
+      <text x="902" y="122" font-size="11.5" fill="#1f2933">SIOD(SDA)→47　SIOC(SCL)→49</text>
+      <text x="902" y="141" font-size="11.5" fill="#1f2933">D0→38　D1→39　D2→40</text>
+      <text x="902" y="160" font-size="11.5" fill="#1f2933">D3→2　 D4→3　 D5→1</text>
+      <text x="902" y="179" font-size="11.5" fill="#1f2933">D6→35　D7→36</text>
+      <text x="902" y="201" font-size="10.5" fill="#64748b">SCCB(I2C1) 地址 0x30</text>
+      <text x="902" y="219" font-size="10.5" fill="#64748b">D5/D6/D7 刻意避开 GPIO0/45/46</text>
+      <text x="902" y="237" font-size="10.5" fill="#b45309">仅 SCCB 探测 PID/VER，无采集</text>
+      <text x="902" y="255" font-size="10.5" fill="#64748b">XCLK 由 LEDC 产生</text>
+    </g>
+
+    <!-- E SYN6288 -->
+    <g>
+      <rect x="890" y="290" width="250" height="96" rx="10" fill="#fff" stroke="#b45309" stroke-width="2"/>
+      <rect x="890" y="290" width="250" height="26" rx="10" fill="#fef3c7"/>
+      <text x="902" y="308" font-size="13" font-weight="bold" fill="#92400e">SYN6288 语音 (UART1)</text>
+      <text x="902" y="334" font-size="11.5" fill="#1f2933">TX → GPIO4 (S31→模块RX，单向)</text>
+      <text x="902" y="354" font-size="10.5" fill="#64748b">9600 baud（待核实）</text>
+      <text x="902" y="374" font-size="11" font-weight="bold" fill="#b91c1c">仅 3.3V 逻辑！5V 会损坏 GPIO</text>
+    </g>
+
+    <!-- F STM32 -->
+    <g>
+      <rect x="890" y="410" width="250" height="112" rx="10" fill="#fff" stroke="#b91c1c" stroke-width="2"/>
+      <rect x="890" y="410" width="250" height="26" rx="10" fill="#fee2e2"/>
+      <text x="902" y="428" font-size="13" font-weight="bold" fill="#991b1b">STM32 通信 (UART2)</text>
+      <text x="902" y="454" font-size="11.5" fill="#1f2933">TX → GPIO46 → STM32 PA3</text>
+      <text x="902" y="474" font-size="11.5" fill="#1f2933">RX → GPIO37 ← STM32 PA2</text>
+      <text x="902" y="494" font-size="10.5" fill="#64748b">交叉接线 + 共地；921600 baud</text>
+      <text x="902" y="512" font-size="10.5" fill="#b45309">GPIO46 是 strapping 脚，必要时改宏</text>
+    </g>
+
+    <!-- H 保留/禁用 -->
+    <g>
+      <rect x="890" y="545" width="250" height="142" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="2" stroke-dasharray="6 4"/>
+      <rect x="890" y="545" width="250" height="26" rx="10" fill="#e2e8f0"/>
+      <text x="902" y="563" font-size="13" font-weight="bold" fill="#334155">保留未驱动 / 禁用</text>
+      <text x="902" y="589" font-size="11.5" fill="#475569">RGB LED → GPIO60（未驱动）</text>
+      <text x="902" y="609" font-size="11.5" fill="#475569">BOOT 按键 → GPIO61（未驱动）</text>
+      <text x="902" y="633" font-size="11" fill="#475569">外置 INMP441 mic：</text>
+      <text x="902" y="651" font-size="11" fill="#475569">BCLK35 / WS36 / DIN37（禁用）</text>
+      <text x="902" y="674" font-size="10.5" fill="#94a3b8">AUDIO_USE_EXTERNAL_I2S_MIC=0</text>
+    </g>
+
+    <text x="590" y="858" text-anchor="middle" font-size="11" fill="#94a3b8">图：ESP32-S31 GPIO 接线总览 · 依据 bsp_pinmap.h 整理绘制（非逐字稿）· 未经硬件实测</text>
+  </svg>
+  <p class="cap">浅色主题 · 建议横向打印（A4 横向）以完整显示连线图</p>
+</section>
+
+<section>
+  <h2>二、引脚明细表</h2>
+
+  <h3>① 调试串口 Console（UART0）</h3>
+  <table><tr><th>信号</th><th>GPIO</th><th>说明</th></tr>
+  <tr><td>TX</td><td>GPIO58</td><td rowspan="2">板子和 IDF 固定，本项目不重映射</td></tr>
+  <tr><td>RX</td><td>GPIO59</td></tr></table>
+
+  <h3>② TF 卡（SDMMC slot0，4 线）</h3>
+  <table><tr><th>CLK</th><th>CMD</th><th>D0</th><th>D1</th><th>D2</th><th>D3</th></tr>
+  <tr><td>GPIO24</td><td>GPIO25</td><td>GPIO20</td><td>GPIO21</td><td>GPIO22</td><td>GPIO23</td></tr></table>
+  <p class="src">ESP32-S31 的 SDMMC IOMUX 固定引脚，4 线模式，时钟 20 MHz。</p>
+
+  <h3>③ 热成像 MAG160Core（USB）</h3>
+  <p>走原生 USB <b>D+/D-</b>，<b>不占用任何 GPIO</b>。识别条件：VID <code>0x833C</code>，PID <code>0x0001</code> 或 <code>0x0002</code>。</p>
+
+  <h3>④ OV2640 摄像头（DVP，plan B）</h3>
+  <table>
+    <tr><th>XCLK</th><th>PCLK</th><th>VSYNC</th><th>HREF</th><th>SIOD(SDA)</th><th>SIOC(SCL)</th></tr>
+    <tr><td>GPIO48 (20MHz)</td><td>GPIO42</td><td>GPIO43</td><td>GPIO44</td><td>GPIO47</td><td>GPIO49</td></tr>
+  </table>
+  <table>
+    <tr><th>D0</th><th>D1</th><th>D2</th><th>D3</th><th>D4</th><th>D5</th><th>D6</th><th>D7</th></tr>
+    <tr><td>GPIO38</td><td>GPIO39</td><td>GPIO40</td><td>GPIO2</td><td>GPIO3</td><td>GPIO1</td><td>GPIO35</td><td>GPIO36</td></tr>
+  </table>
+  <p class="src">SCCB(I2C1) 地址 0x30；XCLK 由 LEDC 产生；D5/D6/D7 特意从 GPIO0/45/46 移开。目前只做 SCCB 探测 PID/VER，无图像采集（plan B）。</p>
+
+  <h3>⑤ SYN6288 语音模块（UART1）</h3>
+  <table><tr><th>信号</th><th>GPIO</th><th>说明</th></tr>
+  <tr><td>TX</td><td>GPIO4</td><td>S31 → SYN6288 RX，单向；9600 baud（注释标注待核实）</td></tr></table>
+  <div class="danger"><b>⚠️ 必须接 3.3V 逻辑版本</b>，5V 的 RX 输入会损坏 S31 GPIO。</div>
+
+  <h3>⑥ STM32 通信（UART2）</h3>
+  <table><tr><th>信号</th><th>GPIO</th><th>接法</th></tr>
+  <tr><td>TX</td><td>GPIO46</td><td>S31 TX → STM32 PA3</td></tr>
+  <tr><td>RX</td><td>GPIO37</td><td>S31 RX ← STM32 PA2</td></tr></table>
+  <p class="src">交叉接线 + 共地；921600 baud。GPIO46 是 strapping 脚（ROM log select），若影响启动，改宏 <code>PINMAP_LINK_UART_TX</code> 一处即可。</p>
+
+  <h3>⑦ ES8311 音频（板载，I2C0 + I2S0）</h3>
+  <table><tr><th>信号</th><th>GPIO</th><th>方向/说明</th></tr>
+  <tr><td>I2C SCL</td><td>GPIO50</td><td rowspan="2">codec 7-bit 地址 0x18</td></tr>
+  <tr><td>I2C SDA</td><td>GPIO51</td></tr>
+  <tr><td>I2S MCLK</td><td>GPIO52</td><td></td></tr>
+  <tr><td>I2S BCLK</td><td>GPIO53</td><td></td></tr>
+  <tr><td>I2S DIN</td><td>GPIO54</td><td>codec → S31（麦克风数据）</td></tr>
+  <tr><td>I2S WS</td><td>GPIO55</td><td></td></tr>
+  <tr><td>I2S DOUT</td><td>GPIO56</td><td>S31 → codec（播放）</td></tr>
+  <tr><td>PA</td><td>GPIO57</td><td>NS4150B 功放使能</td></tr></table>
+  <p class="src">来自 xiaozhi 板定义：板载 ES8311 + 麦克风 + NS4150B 功放。24 kHz / 16 bit / 单声道；仅自检，无业务音频流。</p>
+
+  <h3>⑧ 保留未驱动 / 禁用</h3>
+  <table><tr><th>元件</th><th>GPIO</th><th>状态</th></tr>
+  <tr><td>RGB LED</td><td>GPIO60</td><td>保留，未驱动</td></tr>
+  <tr><td>BOOT 按键</td><td>GPIO61</td><td>保留，未驱动</td></tr>
+  <tr><td>外置 INMP441 mic</td><td>BCLK GPIO35 / WS GPIO36 / DIN GPIO37</td><td>AUDIO_USE_EXTERNAL_I2S_MIC=0，禁用</td></tr></table>
+</section>
+
+<section>
+  <h2>三、接线避坑清单</h2>
+  <div class="note"><b>引脚复用冲突：</b>GPIO35/GPIO36、GPIO37 被多处定义——摄像头 D6/D7、外置 mic、STM32 RX 都用到它们。当前配置下摄像头不采集、外置 mic 禁用，所以<b>真正在用的是 STM32 RX = GPIO37</b>。接线时不要把 mic 或摄像头 D7 并到这根线上。</div>
+  <ul>
+    <li><b>GPIO46</b> 既是摄像头"特意避开"的 strapping 脚，又被用作 STM32 TX，注意对启动/ROM 日志的影响。</li>
+    <li><b>SYN6288</b> 只有 TX 一根线，<b>3.3V 电平</b>，绝不能接 5V。</li>
+    <li>所有 UART（Console / TTS / Link）与 I2C、I2S，除注明外都需<b>共地</b>。</li>
+    <li>STM32 链路 TX/RX 需<b>交叉接</b>（S31 TX→PA3，RX←PA2），不是直连同名脚。</li>
+    <li>TF 卡、Console、热成像 USB 的引脚/接口是固定或板级的，不要尝试重映射。</li>
+    <li>以上均为源码静态定义，<b>未经硬件实测验证</b>；上电前请用万用表核对电平与共地。</li>
+  </ul>
+  <p class="src">来源：<code>main/bsp_pinmap.h</code>（全文）、<code>main/app_config.h</code>（频率/波特率）。</p>
+</section>
+
+<footer>ESP32-S31 GPIO 接线速查卡 · 生成于 2026-11-19 · 单文件自包含，可直接打印为 PDF</footer>
+</div>
+</body>
+</html>
