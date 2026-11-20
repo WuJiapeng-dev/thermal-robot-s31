@@ -127,6 +127,14 @@ S31 GPIO37 (RX)  ←──  STM32 PA2 (USART2_TX)
 GND              ────  GND          ← 必须共地
 ```
 
+## 参与协作
+
+多人协作的接手步骤、分工边界、分支与提交约定、以及几个「看着像 bug 但别改」的位置，见
+[`CONTRIBUTING.md`](CONTRIBUTING.md)。
+
+简要约定：`main` 保持随时可编译，改动走 `feat/` `fix/` `docs/` 分支 + PR；串口 JSON 字段的
+增删属于破坏性变更，必须两端同步改。
+
 ## 许可
 
 本项目源码以 **MIT** 许可发布，全文见 [`LICENSE`](LICENSE)。
