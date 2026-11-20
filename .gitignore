@@ -17,3 +17,15 @@ __pycache__/
 # Local secrets
 .env
 .env.*
+
+# Build artifacts (ESP-IDF / GNU Make / Keil)
+# 仓库根不编译，这条是防止有人在根目录误跑 idf.py 时把 274MB 的 build/ 提交进来
+build/
+build_gnu/
+spl/
+*.o
+*.d
+*.su
+*.dmp
+
+# 注：firmware/ 下的 .elf/.hex/.bin/.map 是刻意提交的正式产物，不要忽略
