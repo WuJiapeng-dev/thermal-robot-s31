@@ -19,10 +19,13 @@ cd thermal-robot-s31
 . "C:\Espressif\tools\Microsoft.v6.1.PowerShell_profile.ps1"   # 路径按自己机器改
 cd main/ESP32-S31
 $env:IDF_PY_BUILD_JOBS = "3"
-idf.py --preview build
+idf.py --preview set-target esp32s31   # 仅首次，仓库不含 sdkconfig，必须做
+idf.py build                           # 此后改代码只需要这一条
 ```
 
-- `esp32s31` 在 IDF 6.1 里是 **preview target**，`idf.py` **必须带 `--preview`**，漏掉会报 unknown target。
+- `esp32s31` 在 IDF 6.1 里是 **preview target**。规则只有一条：**`set-target` 必须带 `--preview`**，
+  漏掉会报 `still in preview`。一旦 `sdkconfig` 里 `CONFIG_IDF_TARGET="esp32s31"` 定下来，
+  `build` / `flash` / `monitor` 都不需要 `--preview`。
 - 首次构建需联网：组件管理器会拉 `espressif/usb 1.6.0` 与 `espressif/esp_codec_dev 1.6.2` 到工程根的 `managed_components/`。
 - 不要在仓库根目录跑 `idf.py`——那里没有工程文件，只会在根下生成一个巨大的 `build/`。
 
@@ -85,7 +88,28 @@ make SPL_DIR=/path/to/STM32F10x_StdPeriph_Lib_V3.5.0
 
 ---
 
-## 6. 提交前自检
+## 6. 串口认不到怎么办
+
+按顺序排，别一上来就重装 IDF：
+
+1. **设备管理器 → 端口(COM 和 LPT)** 里有没有新出现的 COM 口。没有就把「查看 → 显示隐藏的设备」打开，
+   同时看「通用串行总线控制器」和「其他设备」里有没有带黄色感叹号的条目。
+2. 认设备靠 VID/PID，不靠名字：
+   - `VID_1A86 & PID_7523` → **CH340**（本板 USB 转串口）
+   - `VID_1A86 & PID_55D3` → CH343
+   - `VID_303A & PID_1001 / 4001` → **Espressif 原生 USB**（S31 自己枚举出来的串口）
+   - `VID_0403 & PID_6001` → FTDI
+3. 有条目但**没有 COM 号**、或状态是「Unknown / 设备描述符请求失败」→ 装对应驱动（CH340 去 WCH 官网下），
+   然后**拔插一次**，不要只插不拔。
+4. 完全没反应 → 先怀疑**线**：很多 USB 线只有电源线没有数据线，换一根能传数据的。
+5. 板子有两个 USB 口时注意区分：一个是 USB-UART（CH340），一个是芯片原生 USB；
+   烧录用哪个取决于 `idf.flashType`（本项目为 `UART`，走 CH340 那个口）。
+6. 系统里残留的同名设备（历史插过、现在已拔掉）会显示为 Unknown，属于正常现象，
+   判断「现在到底插没插」要看刷新后的状态，别被幽灵条目骗了。
+
+---
+
+## 7. 提交前自检
 
 1. 改的是哪一侧？另一侧要不要同步改？
 2. 有没有把**未实测**写成"已验证"？编译通过只能写"编译通过"。
@@ -95,6 +119,6 @@ make SPL_DIR=/path/to/STM32F10x_StdPeriph_Lib_V3.5.0
 
 ---
 
-## 7. 已知限制不是待修 bug
+## 8. 已知限制不是待修 bug
 
 `README.md` 的「已知限制」表列了 7 项（温度换算、热点标定、中文字模、绝对定位、实机验证、运动模块、WiFi 上传）。这些是**规划内的未完成项**，不要当成缺陷提单，除非你打算当次就实现它。

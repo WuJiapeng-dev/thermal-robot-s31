@@ -55,14 +55,18 @@ build_logs/               真实编译日志
 
 ### ESP32-S31
 
-目标 `esp32s31` 在 ESP-IDF v6.1 中是 **preview target**，`idf.py` 必须带 `--preview`。
+目标 `esp32s31` 在 ESP-IDF v6.1 中是 **preview target**（`tools/idf_py_actions/constants.py`
+的 `PREVIEW_TARGETS`），但 `--preview` 只在 **`set-target`** 时强制
+（`core_ext.py` 的 `set_target()` 会校验），target 写进 `sdkconfig` 之后，
+`build` / `flash` / `monitor` 都不需要带。
 
 ```powershell
 # 先激活 IDF 环境
 . "C:\Espressif\tools\Microsoft.v6.1.PowerShell_profile.ps1"
 
 cd main/ESP32-S31
-idf.py --preview build
+idf.py --preview set-target esp32s31   # 仅首次；仓库不含 sdkconfig
+idf.py build
 ```
 
 **首次构建需要联网**：`main/idf_component.yml` 声明了 `espressif/usb 1.6.0` 与
@@ -71,6 +75,19 @@ idf.py --preview build
 按需自行决定是否提交）。
 
 构建慢可设 `$env:IDF_PY_BUILD_JOBS = "3"` 控制并行度。
+
+### 在 VS Code 里开发
+
+装了 **ESP-IDF 扩展**（本机验证版本 `espressif.esp-idf-extension-2.3.0`）之后：
+
+1. **打开的是工程根** `main/ESP32-S31`（有 `CMakeLists.txt` 的那一层），**不要**打开仓库根目录。
+2. 扩展从 `C:\Espressif\tools\eim_idf.json`（ESP-IDF Installation Manager 的清单）自动发现已装版本；
+   若底部状态栏没显示版本，按 `Ctrl+Shift+P` → `ESP-IDF: Select Current ESP-IDF Version` 选 `v6.1`。
+3. **芯片型号不是在下拉框里挑出来的**，而是由 `sdkconfig` 的 `CONFIG_IDF_TARGET` 决定。
+   新目录第一次要先在 IDF 终端跑一次 `idf.py --preview set-target esp32s31`，之后状态栏就会显示
+   `esp32s31`，Build / Flash 按钮都能直接用（扩展对 preview 目标会自动补 `--preview`）。
+4. 板子插上后，状态栏选择对应 COM 口再点烧录；认不出串口见
+   [`CONTRIBUTING.md`](CONTRIBUTING.md) 的排错段。
 
 若你已有这两份组件的本地副本，可放到 `main/ESP32-S31/managed_components/` 下，
 再设 `$env:IDF_COMPONENT_MANAGER = "0"` 走离线构建——这是开发机上的做法，不是默认路径。
@@ -81,7 +98,7 @@ idf.py --preview build
 烧录（`esp32s31` 目标支持见 `esptool 5.6.0` 的 `targets/esp32s31.py`）：
 
 ```powershell
-idf.py --preview -p COM3 flash monitor
+idf.py -p COM3 flash monitor
 ```
 
 烧录参数已固化在 `build/flash_project_args` 生成逻辑中：`dio / 80MHz / 16MB`，
